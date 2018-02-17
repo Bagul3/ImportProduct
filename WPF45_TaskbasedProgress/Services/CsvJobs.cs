@@ -9,18 +9,18 @@ using CSV.Models;
 
 namespace ImportProducts.Services
 {
-    public class ImportCsvJob
+    public class CsvJobs
     {
         private readonly LogWriter _logger;
         private readonly ExcelMapper _mapper;
 
-        public ImportCsvJob()
+        public CsvJobs()
         {
             this._logger = new LogWriter();
             this._mapper = new ExcelMapper();
         }
 
-        public StringBuilder DoJob(string refff, IEnumerable<string> t2TreFs)
+        public StringBuilder ProcessT2TRefs(string refff, IEnumerable<string> t2TreFs)
         {
             var csvLines = new StringBuilder();
             _logger.LogWrite("Generating stock.csv: This will take a few minutes, please wait....");

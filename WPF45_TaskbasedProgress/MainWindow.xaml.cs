@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
-using System.Xml.Linq;
 using ImportProducts.Services;
 
 namespace WPF45_TaskbasedProgress
@@ -19,22 +18,18 @@ namespace WPF45_TaskbasedProgress
     /// </summary>
     public partial class MainWindow : Window
     {
-        ObservableCollection<Employee> Employees;
-        ObservableCollection<Image> fileNames;
         CancellationTokenSource cancelToken;
         IProgress<double> progressOperation;
-        public static string imagePath;
-        private ImportCsvJob job;
+        private readonly ImportCsvService _importCsvService;
+        public static string ImagePath;
         private StringBuilder csv;
 
         public MainWindow()
         {
             InitializeComponent();
-            fileNames = new ObservableCollection<Image>();
-            Employees = new ObservableCollection<Employee>();
             btnCancel.IsEnabled = false;
-            job = new ImportCsvJob();
             csv = new StringBuilder();
+            _importCsvService = new ImportCsvService();
         }
 
         // Displaying Employees in DataGrid 
@@ -54,11 +49,11 @@ namespace WPF45_TaskbasedProgress
                 };
                 var dlgResult = folderBrowserDlg.ShowDialog();
 
-                imagePath = folderBrowserDlg.SelectedPath;
+                ImagePath = folderBrowserDlg.SelectedPath;
                 
-                var Emps = await LoadImagesAsync(cancelToken.Token, progressOperation);
+                var emps = await _importCsvService.LoadImagesAsync(cancelToken.Token, progressOperation, ImagePath);
 
-                foreach (var item in Emps)
+                foreach (var item in emps)
                 {
                     dgEmp.Items.Add(item);
                 }
@@ -81,25 +76,6 @@ namespace WPF45_TaskbasedProgress
             }
         }
 
-
-        // Async Method to Load Employees
-
-        async Task<ObservableCollection<Image>> LoadImagesAsync(CancellationToken ct, IProgress<double> progress)
-        {
-            Employees.Clear();
-            var task = Task.Run(() => {
-                var images = Directory.GetFiles(imagePath).Select(Path.GetFileName).ToArray();
-                foreach (var file in images)
-                {
-                    fileNames.Add(new Image() {ImageName = file , T2TRef = ""});
-                }
-
-                return fileNames;
-            });
-
-            return await task;
-        }
-
         private async void btnGenerateImportCsv_Click(object sender, RoutedEventArgs e)
         {
             csv = new StringBuilder();
@@ -109,18 +85,14 @@ namespace WPF45_TaskbasedProgress
             btnCancel.IsEnabled = true;
             TxtStatus.Text = "Generating.....";
             progressOperation = (IProgress<double>)new Progress<double>(value => progress.Value = value);
-            var headers = $"{"store"},{"websites"},{"attribut_set"},{"type"},{"sku"},{"has_options"},{"name"},{"page_layout"},{"options_container"},{"price"},{"weight"},{"status"},{"visibility"},{"short_description"},{"qty"},{"product_name"},{"color"}," +
-                          $"{"size"},{"tax_class_id"},{"configurable_attributes"},{"simples_skus"},{"manufacturer"},{"is_in_stock"},{"categories"},{"season"},{"stock_type"},{"image"},{"small_image"},{"thumbnail"},{"gallery"}," +
-                          $"{"condition"},{"ean"},{"description"},{"model"}";
-
-            csv.AppendLine(headers);
+            
             try
             {
                 TxtStatus.Text = "Removing exisiting import product file...";
-                await CleanupExistingFile();
+                await _importCsvService.CleanupExistingFile();
                 TxtStatus.Text = "Generating import product csv file, please wait this can take several minutes....";
-                var t2tRefs = new ImageService().ReadImageDetails(imagePath);
-                var result = await GenerateImportCsv(t2tRefs, cancelToken.Token, progressOperation);
+                
+                var result = _importCsvService.GenerateImportCsv(cancelToken.Token, progressOperation, ImagePath);
                 csv.AppendLine(result.ToString());
                 progressOperation.Report(100);
                 File.AppendAllText(System.Configuration.ConfigurationManager.AppSettings["OutputPath"], csv.ToString());
@@ -142,45 +114,6 @@ namespace WPF45_TaskbasedProgress
                 btnLoadImages.IsEnabled = true;
             }
         }
-
-
-
-        // Calcluate the Tax for every Employee Record.
-        private async Task CleanupExistingFile()
-        {
-            var tsk = Task.Run(() =>
-            {
-                job.DoCleanup();
-            });
-
-            await tsk;
-        }
-
-        private async Task<StringBuilder> GenerateImportCsv(IEnumerable<string> t2TreFs, CancellationToken ct, IProgress<double> progress)
-        {
-            var bodyContent = new StringBuilder();
-            var checkNumber = "00000";
-            int recCount = 0;
-            var tsk = Task.Run(() =>
-            {
-                foreach (var refff in t2TreFs.Where(x => !x.Contains("_")))
-                {
-                    ct.ThrowIfCancellationRequested();
-
-                    if (!refff.Contains(checkNumber))
-                    {
-                        bodyContent.Append(job.DoJob(refff, t2TreFs));
-                        checkNumber = refff.Substring(0,9);
-                        ++recCount;
-                        progress.Report(recCount * 100.0 / 50);
-                    }
-                }
-                return bodyContent;
-            });
-
-            return await tsk;
-        }
-        
 
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
