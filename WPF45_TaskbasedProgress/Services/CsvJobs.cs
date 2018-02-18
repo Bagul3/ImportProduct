@@ -157,8 +157,7 @@ namespace ImportProducts.Services
             var gallery = "\"" + BuildGalleryImages(t2TreFs, reff) + "\"";
             var condition = "\"new\"";
             var ean = "\"\"";
-            var description = "\"" + descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd() +
-                              "\"";
+            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
             var model = "\"" + dr["SHORT"] + "\"";
 
             var newLine = $"{store}," +
@@ -233,7 +232,7 @@ namespace ImportProducts.Services
             var gallery = "\"" + BuildGalleryImages(t2TreFs, reff) + "\"";
             const string condition = "\"new\"";
             const string ean = "\"\"";
-            var description = "\"" + descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd() + "\"";
+            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
             var model = "\"" + dr["SHORT"] + "\"";
 
             var newLine = $"{store}," +
@@ -275,6 +274,20 @@ namespace ImportProducts.Services
             var output = fields.Aggregate("\"", (current, field) => current + (field + ","));
             return output.Remove(output.Length - 1) + "\"";
         }
+
+        public static string EncapsulateCommas(string description)
+        {
+            var result = description.Split(',');
+            if (result.Length == 0)
+                return "\"" + description + "\"";
+            var output = "\"";
+            foreach (var field in result)
+            {
+                output += field + ",";
+            }
+            return output.Remove(output.Length - 1) + "\"";
+        }
+    
 
         public void DoCleanup()
         {
