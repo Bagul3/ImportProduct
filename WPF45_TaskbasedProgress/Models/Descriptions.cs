@@ -1,4 +1,4 @@
-﻿namespace CSV.Models
+﻿namespace ImportProducts.Models
 {
     public class Descriptions
     {

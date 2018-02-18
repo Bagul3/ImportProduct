@@ -27,6 +27,12 @@
                 <DataGridTextColumn Header="Image Name" Binding="{Binding ImageName}"></DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
+        <DataGrid Grid.Column="1" Margin="0.333,5,0,58"
+                  AutoGenerateColumns="False"  ColumnWidth="*" Name="dgError" Grid.Row="1">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Images with no descriptions" Binding="{Binding RefNumber}"></DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
         <Button Content="Load Image" Grid.Row="2" Grid.Column="0" FontSize="20"
                  Name="btnLoadImages" Click="btnLoadImages_Click" Margin="25,0,187.667,0"/>
         <Button Content="Generate" Grid.Row="2"
