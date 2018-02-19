@@ -64,6 +64,7 @@
     <Compile Include="LogWriter.cs" />
     <Compile Include="Models\Descriptions.cs" />
     <Compile Include="Models\ExcelMapper.cs" />
+    <Compile Include="Models\Error.cs" />
     <Compile Include="Models\SqlQuery.cs" />
     <Compile Include="Services\ImageService.cs" />
     <Compile Include="Services\CsvJobs.cs" />

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ImportProducts.Models;
 using WPF45_TaskbasedProgress;
 
 namespace ImportProducts.Services
@@ -21,34 +22,31 @@ namespace ImportProducts.Services
             this._imageService = new ImageService();
         }
 
-        public StringBuilder GenerateImportCsv(CancellationToken ct, IProgress<double> progress, string imagePath)
+        public async Task<StringBuilder> GenerateImportCsvAsync(CancellationToken ct, string reff, IEnumerable<string> t2TreFs)
         {
-            var bodyContent = new StringBuilder();
-            var recCount = 0;
-            var t2TreFs = GetT2TRefs(imagePath);
-            var uniqueReffs = GetuniqueReferenceNumbers(t2TreFs);
-
-            Parallel.ForEach(uniqueReffs, (reff) =>
+            var tsk = Task.Run(() =>
             {
-                ct.ThrowIfCancellationRequested();
-                bodyContent.Append(_jobs.ProcessT2TRefs(reff, t2TreFs));
-                ++recCount;
-                progress.Report(recCount * 100.0 / 50);
-            });
-
-            return bodyContent;
+                var bodyContent = new StringBuilder();
+               
+               
+                    ct.ThrowIfCancellationRequested();
+                    bodyContent.Append(_jobs.ProcessT2TRefs(reff, t2TreFs));
+                    
+                return bodyContent;
+            }, ct);
+            return await tsk;
         }
 
         public async Task<ObservableCollection<Image>> LoadImagesAsync(CancellationToken ct, IProgress<double> progress, string path)
         {
-            var task = Task.Run(() => {
+            var task = Task.Run(() =>
+            {
                 var fileNames = new ObservableCollection<Image>();
                 var images = Directory.GetFiles(path).Select(Path.GetFileName).ToArray();
-                Parallel.ForEach(images, (file) =>
+                foreach (var file in images)
                 {
-                    fileNames.Add(new Image() {ImageName = file, T2TRef = ""});
-                });
-
+                    fileNames.Add(new Image() { ImageName = file, T2TRef = "" });
+                }
                 return fileNames;
             }, ct);
 
@@ -65,7 +63,7 @@ namespace ImportProducts.Services
             await tsk;
         }
 
-        private IEnumerable<string> GetuniqueReferenceNumbers(IEnumerable<string> reffs)
+        public IEnumerable<string> GetuniqueReferenceNumbers(IEnumerable<string> reffs)
         {
             var checkNumber = "0000";
             var uniqueReferenceNumbers = new List<string>();
@@ -80,7 +78,7 @@ namespace ImportProducts.Services
             return uniqueReferenceNumbers;
         }
 
-        private IEnumerable<string> GetT2TRefs(string imagePath)
+        public IEnumerable<string> GetT2TRefs(string imagePath)
         {
             return _imageService.ReadImageDetails(imagePath);
         }

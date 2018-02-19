@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.OleDb;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using CSV.Models;
+using ImportProducts.Models;
 
 namespace ImportProducts.Services
 {
@@ -19,7 +22,7 @@ namespace ImportProducts.Services
             this._logger = new LogWriter();
             this._mapper = new ExcelMapper();
         }
-
+        
         public StringBuilder ProcessT2TRefs(string refff, IEnumerable<string> t2TreFs)
         {
             var csvLines = new StringBuilder();
@@ -31,7 +34,7 @@ namespace ImportProducts.Services
                 connectionHandler.Open();
 
                 var reff = refff.Substring(0, 6);
-
+                
                 var data = new DataSet();
                 var myAccessCommand = new OleDbCommand(SqlQuery.ImportProductsQuery, connectionHandler);
                 myAccessCommand.Parameters.AddWithValue("?", reff);
@@ -92,7 +95,15 @@ namespace ImportProducts.Services
                                     simpleSkusList.Add(groupSkus2);
                                     var newLine = BuildChildImportProduct(groupSkus2, dr, descriptions, reff,
                                         shortDescription, actualStock, descripto, size, isStock, refff, t2TreFs);
-                                    csvLines.AppendLine(newLine);
+                                    if (newLine != null)
+                                    {
+                                        csvLines.AppendLine(newLine);
+                                    }
+                                    else
+                                    {
+                                        return null;
+                                    }
+                                   
                                 }
 
                             }
@@ -103,9 +114,15 @@ namespace ImportProducts.Services
                     isStock = inStockFlag ? 1 : 0;
                     if (!string.IsNullOrEmpty(dr["NewStyle"].ToString()))
                     {
-                        var newLine = ParentImportProduct(groupSkus, descriptions, reff, dr, simpleSkusList,
-                            isStock, refff, t2TreFs);
-                        csvLines.AppendLine(newLine);
+                        var newLine = ParentImportProduct(groupSkus, descriptions, reff, dr, simpleSkusList, isStock, refff, t2TreFs);
+                        if (newLine != null)
+                        {
+                            csvLines.AppendLine(newLine);
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
                     inStockFlag = false;
                     if (data.Tables[0].Rows.Count > 1)
@@ -120,9 +137,13 @@ namespace ImportProducts.Services
             return csvLines;
         }
 
-        private static string ParentImportProduct(string groupSkus, List<Descriptions> descriptions, string reff, DataRow dr, List<string> simpleSkusList,
+        private static string ParentImportProduct(string groupSkus, List<Descriptions> descriptions, string reff, DataRow dr, IEnumerable<string> simpleSkusList,
             int isStock, string reffColour, IEnumerable<string> t2TreFs)
         {
+            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
+            if (description == null)
+                return null;
+
             var store = "\"admin\"";
             var websites = Websites()?.TrimEnd();
             var attribut_set = "\"Default\"";
@@ -157,7 +178,6 @@ namespace ImportProducts.Services
             var gallery = "\"" + BuildGalleryImages(t2TreFs, reff) + "\"";
             var condition = "\"new\"";
             var ean = "\"\"";
-            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
             var model = "\"" + dr["SHORT"] + "\"";
 
             var newLine = $"{store}," +
@@ -199,6 +219,10 @@ namespace ImportProducts.Services
             string short_description, string actualStock, string descripto, string size, int isStock, string reffColour,
             IEnumerable<string> t2TreFs)
         {
+            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
+            if (description == null)
+                return null;
+
             const string store = "\"admin\"";
             var websites = Websites()?.TrimEnd();
             const string attribut_set = "\"Default\"";
@@ -232,7 +256,6 @@ namespace ImportProducts.Services
             var gallery = "\"" + BuildGalleryImages(t2TreFs, reff) + "\"";
             const string condition = "\"new\"";
             const string ean = "\"\"";
-            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
             var model = "\"" + dr["SHORT"] + "\"";
 
             var newLine = $"{store}," +
@@ -275,20 +298,6 @@ namespace ImportProducts.Services
             return output.Remove(output.Length - 1) + "\"";
         }
 
-        public static string EncapsulateCommas(string description)
-        {
-            var result = description.Split(',');
-            if (result.Length == 0)
-                return "\"" + description + "\"";
-            var output = "\"";
-            foreach (var field in result)
-            {
-                output += field + ",";
-            }
-            return output.Remove(output.Length - 1) + "\"";
-        }
-    
-
         public void DoCleanup()
         {
             if (File.Exists(System.Configuration.ConfigurationManager.AppSettings["OutputPath"]))
@@ -301,22 +310,30 @@ namespace ImportProducts.Services
         {
             if (description == null)
                 return "<ul></ul>";
-
-            if (string.IsNullOrEmpty(description.Bullet1) && string.IsNullOrEmpty(description.Bullet2) &&
-                string.IsNullOrEmpty(description.Bullet3) && string.IsNullOrEmpty(description.Bullet4) &&
-                string.IsNullOrEmpty(description.Bullet5) && string.IsNullOrEmpty(description.Bullet6) &&
-                string.IsNullOrEmpty(description.Bullet7))
-            {
-                return "<ul></ul>";
-            }
-            var bullet1 = string.IsNullOrEmpty(description.Bullet1) ? "" : "<li>" + description.Bullet1 + "</li>";
-            var bullet2 = string.IsNullOrEmpty(description.Bullet2) ? "" : "<li>" + description.Bullet2 + "</li>";
-            var bullet3 = string.IsNullOrEmpty(description.Bullet3) ? "" : "<li>" + description.Bullet3 + "</li>";
-            var bullet4 = string.IsNullOrEmpty(description.Bullet4) ? "" : "<li>" + description.Bullet4 + "</li>";
-            var bullet5 = string.IsNullOrEmpty(description.Bullet5) ? "" : "<li>" + description.Bullet5 + "</li>";
-            var bullet6 = string.IsNullOrEmpty(description.Bullet6) ? "" : "<li>" + description.Bullet6 + "</li>";
-            var bullet7 = string.IsNullOrEmpty(description.Bullet7) ? "" : "<li>" + description.Bullet7 + "</li>";
+            
+            var bullet1 = string.IsNullOrEmpty(description.Bullet1) ? "" : "<li>" + Regex.Replace(description.Bullet1, @"\t|\n|\r", "") + "</li>";
+            var bullet2 = string.IsNullOrEmpty(description.Bullet2) ? "" : "<li>" + Regex.Replace(description.Bullet2, @"\t|\n|\r", "") + "</li>";
+            var bullet3 = string.IsNullOrEmpty(description.Bullet3) ? "" : "<li>" + Regex.Replace(description.Bullet3, @"\t|\n|\r", "") + "</li>";
+            var bullet4 = string.IsNullOrEmpty(description.Bullet4) ? "" : "<li>" + Regex.Replace(description.Bullet4, @"\t|\n|\r", "") + "</li>";
+            var bullet5 = string.IsNullOrEmpty(description.Bullet5) ? "" : "<li>" + Regex.Replace(description.Bullet5, @"\t|\n|\r", "") + "</li>";
+            var bullet6 = string.IsNullOrEmpty(description.Bullet6) ? "" : "<li>" + Regex.Replace(description.Bullet6, @"\t|\n|\r", "") + "</li>";
+            var bullet7 = string.IsNullOrEmpty(description.Bullet7) ? "" : "<li>" + Regex.Replace(description.Bullet7, @"\t|\n|\r", "") + "</li>";
             return "<ul>" + bullet1 + bullet2 + bullet3 + bullet4 + bullet5 + bullet6 + bullet7 + "</ul>";
+        }
+
+        private static string EncapsulateCommas(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+                return null;
+            var result = description.Split(',');
+            if (result.Length == 0)
+                return "\"" + description + "\"";
+            var output = "\"";
+            foreach (var field in result)
+            {
+                output += field + ",";
+            }
+            return output.Remove(output.Length - 1) + "\"";
         }
     }
 }
