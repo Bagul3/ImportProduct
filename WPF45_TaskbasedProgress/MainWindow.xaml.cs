@@ -102,17 +102,21 @@ namespace WPF45_TaskbasedProgress
                 {
                     var result = await _importCsvService.GenerateImportCsvAsync(_cancelToken.Token, reff, t2TreFs);
 
-                    if(string.IsNullOrEmpty(result.ToString()))
-                        dgError.Items.Add(new Error(){RefNumber = reff.Substring(0,9)});
+                    if (string.IsNullOrEmpty(result.ToString()))
+                    {
+                        dgError.Items.Add(new Error() { RefNumber = reff.Substring(0, 9) });
+                    }
                     else
+                    {
                         _csv.AppendLine(result.ToString());
+                    }
 
                     ++recCount;
                     _progressOperation.Report(recCount * 100.0 / 70);
                 }
 
                 _progressOperation.Report(100);
-                File.AppendAllText(System.Configuration.ConfigurationManager.AppSettings["OutputPath"], _csv.ToString());
+                 File.AppendAllText(System.Configuration.ConfigurationManager.AppSettings["OutputPath"] + "_" + Guid.NewGuid() + ".csv", _csv.ToString().Replace(@"\r\n\r\n\", @"r\n\"));
                 TxtStatus.Text = "Operation completed";
                 
             }

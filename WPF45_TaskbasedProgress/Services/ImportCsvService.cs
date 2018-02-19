@@ -27,10 +27,16 @@ namespace ImportProducts.Services
             var tsk = Task.Run(() =>
             {
                 var bodyContent = new StringBuilder();
-               
-               
-                    ct.ThrowIfCancellationRequested();
-                    bodyContent.Append(_jobs.ProcessT2TRefs(reff, t2TreFs));
+                ct.ThrowIfCancellationRequested();
+                var result = _jobs.ProcessT2TRefs(reff, t2TreFs);
+                if (result != null)
+                {
+                    bodyContent.Append(result);
+                }
+                else
+                {
+                    return new StringBuilder("");
+                }
                     
                 return bodyContent;
             }, ct);

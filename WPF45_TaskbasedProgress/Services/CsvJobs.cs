@@ -80,9 +80,9 @@ namespace ImportProducts.Services
                                 var append = (1000 + i).ToString();
                                 groupSkus = dr["NewStyle"].ToString();
                                 var groupSkus2 = dr["NewStyle"] + append.Substring(1, 3);
-                                var shortDescription = BuildShortDescription(descriptions.FirstOrDefault(x => x.T2TRef == reff));
-                                var descripto = descriptions.Where(x => x.T2TRef == reff)
-                                    .Select(y => y.Descriptio).FirstOrDefault();
+                                var shortDescription = BuildShortDescription(descriptions.FirstOrDefault(x => x.GetT2TRef() == reff));
+                                var descripto = descriptions.Where(x => x.GetT2TRef() == reff)
+                                    .Select(y => y.GetDescriptio()).FirstOrDefault();
 
                                 var size = "";
                                 size = i < 10 ? dr["S0" + i].ToString() : dr["S" + i].ToString();
@@ -140,7 +140,7 @@ namespace ImportProducts.Services
         private static string ParentImportProduct(string groupSkus, List<Descriptions> descriptions, string reff, DataRow dr, IEnumerable<string> simpleSkusList,
             int isStock, string reffColour, IEnumerable<string> t2TreFs)
         {
-            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
+            var description = EncapsulateCommas(descriptions.Where(x => x.GetT2TRef() == reff).Select(y => y.GetDescription()).FirstOrDefault()?.TrimEnd());
             if (description == null)
                 return null;
 
@@ -150,7 +150,7 @@ namespace ImportProducts.Services
             var type = "\"configurable\"";
             var sku = "\"" + groupSkus?.TrimEnd() + "\"";
             var hasOption = "\"1\"";
-            var name = "\"" + descriptions.Where(x => x.T2TRef == reff).Select(y => y.Descriptio).FirstOrDefault() + " in " +
+            var name = "\"" + descriptions.Where(x => x.GetT2TRef() == reff).Select(y => y.GetDescriptio()).FirstOrDefault() + " in " +
                        dr["MasterColour"] + "\"";
             var pageLayout = "\"No layout updates.\"";
             var optionsContainer = "\"Product Info Column\"";
@@ -158,9 +158,9 @@ namespace ImportProducts.Services
             var weight = "\"0.01\"";
             var status = "\"Enabled\"";
             var visibility = Visibility()?.TrimEnd();
-            var shortDescription = "\"" + BuildShortDescription(descriptions.FirstOrDefault(x => x.T2TRef == reff)) + "\"";
+            var shortDescription = "\"" + BuildShortDescription(descriptions.FirstOrDefault(x => x.GetT2TRef() == reff)) + "\"";
             var gty = "\"0\"";
-            var productName = "\"" + descriptions.Where(x => x.T2TRef == reff).Select(y => y.Descriptio).FirstOrDefault() + "\"";
+            var productName = "\"" + descriptions.Where(x => x.GetT2TRef() == reff).Select(y => y.GetDescriptio()).FirstOrDefault() + "\"";
             var color = "\"" + dr["MasterColour"].ToString().TrimEnd() + "\"";
             var sizeRange = "\"\"";
             var vat = dr["VAT"].ToString() == "A" ? "TAX" : "None";
@@ -219,7 +219,7 @@ namespace ImportProducts.Services
             string short_description, string actualStock, string descripto, string size, int isStock, string reffColour,
             IEnumerable<string> t2TreFs)
         {
-            var description = EncapsulateCommas(descriptions.Where(x => x.T2TRef == reff).Select(y => y.Description).FirstOrDefault()?.TrimEnd());
+            var description = EncapsulateCommas(descriptions.Where(x => x.GetT2TRef() == reff).Select(y => y.GetDescription()).FirstOrDefault()?.TrimEnd());
             if (description == null)
                 return null;
 
@@ -229,7 +229,7 @@ namespace ImportProducts.Services
             const string type = "\"simple\"";
             var sku = "\"" + groupSkus2?.TrimEnd() + "\"";
             const string hasOption = "\"1\"";
-            var name = "\"" + dr["MasterSupplier"] + " " + descriptions.Where(x => x.T2TRef == reff).Select(y => y.Descriptio).FirstOrDefault() + " in " + dr["MasterColour"] + "\"";
+            var name = "\"" + dr["MasterSupplier"] + " " + descriptions.Where(x => x.GetT2TRef() == reff).Select(y => y.GetDescriptio()).FirstOrDefault() + " in " + dr["MasterColour"] + "\"";
             const string pageLayout = "\"No layout updates.\"";
             const string optionsContainer = "\"Product Info Column\"";
             var price = "\"" + dr["BASESELL"].ToString().TrimEnd() + "\"";
@@ -311,13 +311,13 @@ namespace ImportProducts.Services
             if (description == null)
                 return "<ul></ul>";
             
-            var bullet1 = string.IsNullOrEmpty(description.Bullet1) ? "" : "<li>" + Regex.Replace(description.Bullet1, @"\t|\n|\r", "") + "</li>";
-            var bullet2 = string.IsNullOrEmpty(description.Bullet2) ? "" : "<li>" + Regex.Replace(description.Bullet2, @"\t|\n|\r", "") + "</li>";
-            var bullet3 = string.IsNullOrEmpty(description.Bullet3) ? "" : "<li>" + Regex.Replace(description.Bullet3, @"\t|\n|\r", "") + "</li>";
-            var bullet4 = string.IsNullOrEmpty(description.Bullet4) ? "" : "<li>" + Regex.Replace(description.Bullet4, @"\t|\n|\r", "") + "</li>";
-            var bullet5 = string.IsNullOrEmpty(description.Bullet5) ? "" : "<li>" + Regex.Replace(description.Bullet5, @"\t|\n|\r", "") + "</li>";
-            var bullet6 = string.IsNullOrEmpty(description.Bullet6) ? "" : "<li>" + Regex.Replace(description.Bullet6, @"\t|\n|\r", "") + "</li>";
-            var bullet7 = string.IsNullOrEmpty(description.Bullet7) ? "" : "<li>" + Regex.Replace(description.Bullet7, @"\t|\n|\r", "") + "</li>";
+            var bullet1 = string.IsNullOrEmpty(description.GetBullet1()) ? "" : "<li>" + description.GetBullet1() + "</li>";
+            var bullet2 = string.IsNullOrEmpty(description.GetBullet2()) ? "" : "<li>" + description.GetBullet2() + "</li>";
+            var bullet3 = string.IsNullOrEmpty(description.GetBullet3()) ? "" : "<li>" + description.GetBullet3() + "</li>";
+            var bullet4 = string.IsNullOrEmpty(description.GetBullet4()) ? "" : "<li>" + description.GetBullet4() + "</li>";
+            var bullet5 = string.IsNullOrEmpty(description.GetBullet5()) ? "" : "<li>" + description.GetBullet5() + "</li>";
+            var bullet6 = string.IsNullOrEmpty(description.GetBullet6()) ? "" : "<li>" + description.GetBullet6() + "</li>";
+            var bullet7 = string.IsNullOrEmpty(description.GetBullet7()) ? "" : "<li>" + description.GetBullet7() + "</li>";
             return "<ul>" + bullet1 + bullet2 + bullet3 + bullet4 + bullet5 + bullet6 + bullet7 + "</ul>";
         }
 
